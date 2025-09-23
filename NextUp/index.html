@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NextUp</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+      rel="stylesheet" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>NextUp</h1>
+        <p>Capture your moments. Create your countdowns.</p>
+        <div class="header-controls">
+          <nav id="main-nav">
+            <button id="current-events-btn" class="active">Current</button>
+            <button id="past-events-btn">Past</button>
+          </nav>
+          <div id="view-switcher">
+            <button id="grid-view-btn" class="active" title="Grid View">
+              ▦
+            </button>
+            <button id="list-view-btn" title="List View">≡</button>
+          </div>
+        </div>
+      </header>
+
+      <form id="event-form">
+        <div class="form-row">
+          <input
+            type="text"
+            id="event-name"
+            placeholder="Event Name"
+            required />
+          <input type="date" id="event-date" required />
+        </div>
+        <textarea
+          id="event-description"
+          placeholder="Add a description... (optional)"></textarea>
+        <div id="form-buttons">
+            <button type="submit">Add Countdown</button>
+        </div>
+      </form>
+
+      <main id="countdown-categories">
+        <section class="category" id="soon-category">
+          <h2>Soon (Less than a week)</h2>
+          <div id="days-list" class="countdown-list"></div>
+        </section>
+        <section class="category" id="weeks-category">
+          <h2>Weeks Away (7-30 days)</h2>
+          <div id="weeks-list" class="countdown-list"></div>
+        </section>
+        <section class="category" id="months-category">
+          <h2>Months Away (30+ days)</h2>
+          <div id="months-list" class="countdown-list"></div>
+        </section>
+      </main>
+
+      <main id="past-events-container" class="hidden">
+        <section class="category">
+          <h2>Past Events</h2>
+          <div id="past-events-list" class="countdown-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="undo-toast" class="hidden">
+      <span>Event deleted.</span>
+      <button id="undo-btn">Undo</button>
+    </div>
+
+    <div id="event-modal" class="hidden">
+      <div class="modal-content">
+        <button id="modal-close-btn">&times;</button>
+        <h2 id="modal-event-name"></h2>
+        <div id="modal-timer" class="timer"></div>
+        <p id="modal-event-description"></p>
+        <button id="modal-edit-btn">Edit</button>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
+    <script src="script.js"></script>
+  </body>
+</html>

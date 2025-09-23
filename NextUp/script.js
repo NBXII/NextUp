@@ -1,0 +1,389 @@
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
+    const eventForm = document.getElementById('event-form');
+    const eventNameInput = document.getElementById('event-name');
+    const eventDateInput = document.getElementById('event-date');
+    const eventDescriptionInput = document.getElementById('event-description');
+    const categoriesContainer = document.getElementById('countdown-categories');
+    const pastEventsContainer = document.getElementById('past-events-container');
+    const gridViewBtn = document.getElementById('grid-view-btn');
+    const listViewBtn = document.getElementById('list-view-btn');
+    const currentEventsBtn = document.getElementById('current-events-btn');
+    const pastEventsBtn = document.getElementById('past-events-btn');
+    const undoToast = document.getElementById('undo-toast');
+    const undoBtn = document.getElementById('undo-btn');
+    const modal = document.getElementById('event-modal');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+
+    // Data
+    let events = JSON.parse(localStorage.getItem('countdownEvents')) || [];
+    let pastEvents = JSON.parse(localStorage.getItem('pastCountdownEvents')) || [];
+    let deleteTimeouts = {}; // Store timeouts for deletions
+    let editMode = {
+        active: false,
+        eventId: null
+    };
+
+    // --- SAVING ---
+    const saveEvents = () => {
+        localStorage.setItem('countdownEvents', JSON.stringify(events));
+        localStorage.setItem('pastCountdownEvents', JSON.stringify(pastEvents));
+    };
+
+    // --- RENDERING ---
+    const render = () => {
+        renderCurrentEvents();
+        renderPastEvents();
+    };
+
+    const renderCurrentEvents = () => {
+        const lists = {
+            days: document.getElementById('days-list'),
+            weeks: document.getElementById('weeks-list'),
+            months: document.getElementById('months-list')
+        };
+        Object.values(lists).forEach(list => list.innerHTML = '');
+
+        const now = new Date();
+        const currentViewEvents = events.filter(event => {
+            const targetDate = new Date(event.date);
+            if (targetDate < now) {
+                pastEvents.unshift(event);
+                return false;
+            }
+            return true;
+        });
+        events = currentViewEvents;
+
+        if (events.length === 0) {
+            document.getElementById('soon-category').classList.add('hidden');
+            document.getElementById('weeks-category').classList.add('hidden');
+            document.getElementById('months-category').classList.add('hidden');
+            lists.days.innerHTML = `<p class="empty-list-msg">No countdowns yet. Add one above to get started!</p>`;
+            document.getElementById('soon-category').classList.remove('hidden');
+            return;
+        }
+
+        const eventsAdded = { days: 0, weeks: 0, months: 0 };
+
+        events.forEach(event => {
+            const targetDate = new Date(event.date);
+            const diffDays = Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
+            const card = createCard(event);
+
+            if (diffDays < 7) {
+                card.dataset.category = 'soon';
+                lists.days.appendChild(card);
+                eventsAdded.days++;
+            } else if (diffDays <= 30) {
+                card.dataset.category = 'weeks';
+                lists.weeks.appendChild(card);
+                eventsAdded.weeks++;
+            } else {
+                card.dataset.category = 'months';
+                lists.months.appendChild(card);
+                eventsAdded.months++;
+            }
+        });
+
+        document.getElementById('soon-category').classList.toggle('hidden', eventsAdded.days === 0);
+        document.getElementById('weeks-category').classList.toggle('hidden', eventsAdded.weeks === 0);
+        document.getElementById('months-category').classList.toggle('hidden', eventsAdded.months === 0);
+
+        updateTimers();
+    };
+
+    const renderPastEvents = () => {
+        const list = document.getElementById('past-events-list');
+        list.innerHTML = '';
+        if (pastEvents.length === 0) {
+            list.innerHTML = `<p class="empty-list-msg">No past events yet.</p>`;
+            return;
+        }
+        pastEvents.forEach(event => {
+            const card = createCard(event, true);
+            list.appendChild(card);
+        });
+    };
+
+    const createCard = (event, isPast = false) => {
+        const card = document.createElement('div');
+        card.className = 'countdown-card';
+        card.dataset.id = event.id;
+
+        const formattedDate = new Date(event.date).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        let timerHtml = '';
+        if (!isPast) {
+            timerHtml = `
+            <div class="timer">
+                <div class="time-unit"><div class="flipper" data-days></div><span class="label">Days</span></div>
+                <div class="time-unit"><div class="flipper" data-hours></div><span class="label">Hours</span></div>
+                <div class="time-unit"><div class="flipper" data-minutes></div><span class="label">Minutes</span></div>
+                <div class="time-unit"><div class="flipper" data-seconds></div><span class="label">Seconds</span></div>
+            </div>`;
+        } else {
+            timerHtml = `<p class="event-ended">Ended on ${formattedDate}</p>`;
+        }
+
+        card.innerHTML = `
+            <div class="countdown-card-content">
+                <h3>${event.name}</h3>
+                <p class="target-date">${isPast ? '' : formattedDate}</p>
+            </div>
+            ${timerHtml}
+            <button class="delete-btn">&times;</button>
+        `;
+
+        card.querySelector('.delete-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteEvent(event.id, isPast);
+        });
+
+        card.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('delete-btn') && !card.classList.contains('deleting')) {
+                showEventModal(event.id, isPast);
+            }
+        });
+        return card;
+    };
+
+    // --- TIMERS ---
+    const updateTimers = () => {
+        document.querySelectorAll('#countdown-categories .countdown-card').forEach(card => {
+            const eventId = parseInt(card.dataset.id);
+            const event = events.find(e => e.id === eventId);
+            if (!event) return;
+
+            const now = new Date();
+            const targetDate = new Date(event.date);
+            let diffTime = targetDate - now;
+            if (diffTime < 0) {
+                render();
+                saveEvents();
+                return;
+            }
+
+            const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diffTime % (1000 * 60)) / 1000);
+
+            updateFlipper(card.querySelector('[data-days]'), days);
+            updateFlipper(card.querySelector('[data-hours]'), hours);
+            updateFlipper(card.querySelector('[data-minutes]'), minutes);
+            updateFlipper(card.querySelector('[data-seconds]'), seconds);
+        });
+    };
+
+    const updateFlipper = (flipper, value) => {
+        if (!flipper) return;
+        const currentValue = parseInt(flipper.dataset.value) || -1;
+        if (currentValue !== value) {
+            const valStr = value.toString().padStart(flipper.dataset.value > 99 ? 3 : 2, '0');
+            flipper.dataset.value = value;
+            flipper.innerHTML = `
+                <div class="flipper-card front">${valStr}</div>
+                <div class="flipper-card back">${valStr}</div>
+            `;
+        }
+    };
+
+    // --- EVENT HANDLERS ---
+    eventForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        if (editMode.active) {
+            // Update existing event
+            const event = events.find(ev => ev.id === editMode.eventId);
+            if (event) {
+                event.name = eventNameInput.value;
+                event.date = `${eventDateInput.value}T00:00:00`;
+                event.description = eventDescriptionInput.value;
+            }
+            resetForm();
+        } else {
+            // Add new event
+            const newEvent = {
+                id: Date.now(),
+                name: eventNameInput.value,
+                date: `${eventDateInput.value}T00:00:00`,
+                description: eventDescriptionInput.value || ''
+            };
+            events.push(newEvent);
+            eventForm.reset();
+        }
+        
+        events.sort((a, b) => new Date(a.date) - new Date(b.date));
+        saveEvents();
+        render();
+    });
+
+    const resetForm = () => {
+        editMode.active = false;
+        editMode.eventId = null;
+        eventForm.reset();
+        document.getElementById('form-buttons').innerHTML = `<button type="submit">Add Countdown</button>`;
+    };
+
+    window.deleteEvent = (eventId, isPast) => {
+        const card = document.querySelector(`.countdown-card[data-id='${eventId}']`);
+        if (!card || deleteTimeouts[eventId]) return;
+
+        card.classList.add('deleting');
+        
+        const undoContainer = document.createElement('div');
+        undoContainer.className = 'undo-container';
+        
+        let countdown = 5;
+        undoContainer.innerHTML = `
+            <p>Deleting in <span class="countdown-timer">${countdown}</span>s...</p>
+            <button>Undo</button>
+        `;
+        card.appendChild(undoContainer);
+
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            const timerSpan = undoContainer.querySelector('.countdown-timer');
+            if (timerSpan) {
+                timerSpan.textContent = countdown;
+            }
+        }, 1000);
+
+        undoContainer.querySelector('button').addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearTimeout(deleteTimeouts[eventId]);
+            clearInterval(countdownInterval);
+            delete deleteTimeouts[eventId];
+            card.removeChild(undoContainer);
+            card.classList.remove('deleting');
+        });
+
+        deleteTimeouts[eventId] = setTimeout(() => {
+            clearInterval(countdownInterval);
+            if (isPast) {
+                pastEvents = pastEvents.filter(e => e.id !== eventId);
+            } else {
+                events = events.filter(e => e.id !== eventId);
+            }
+            saveEvents();
+            render();
+            delete deleteTimeouts[eventId];
+        }, 5000);
+    };
+
+    // This can be removed as the new undo is per-card
+    undoBtn.addEventListener('click', () => {});
+
+    // --- NAVIGATION ---
+    currentEventsBtn.addEventListener('click', () => {
+        categoriesContainer.classList.remove('hidden');
+        pastEventsContainer.classList.add('hidden');
+        currentEventsBtn.classList.add('active');
+        pastEventsBtn.classList.remove('active');
+        document.getElementById('view-switcher').style.visibility = 'visible';
+    });
+
+    pastEventsBtn.addEventListener('click', () => {
+        categoriesContainer.classList.add('hidden');
+        pastEventsContainer.classList.remove('hidden');
+        currentEventsBtn.classList.remove('active');
+        pastEventsBtn.classList.add('active');
+        document.getElementById('view-switcher').style.visibility = 'hidden';
+        renderPastEvents();
+    });
+
+    gridViewBtn.addEventListener('click', () => {
+        categoriesContainer.classList.remove('list-view');
+        gridViewBtn.classList.add('active');
+        listViewBtn.classList.remove('active');
+    });
+
+    listViewBtn.addEventListener('click', () => {
+        categoriesContainer.classList.add('list-view');
+        listViewBtn.classList.add('active');
+        gridViewBtn.classList.remove('active');
+    });
+
+    // --- MODAL ---
+    let modalTimerInterval = null;
+    const showEventModal = (eventId, isPast) => {
+        const event = (isPast ? pastEvents : events).find(e => e.id === eventId);
+        if (!event) return;
+
+        document.getElementById('modal-event-name').textContent = event.name;
+        document.getElementById('modal-event-description').textContent = event.description || 'No description provided.';
+        
+        const modalTimer = document.getElementById('modal-timer');
+        const editBtn = document.getElementById('modal-edit-btn');
+        clearInterval(modalTimerInterval);
+
+        const updateModalTimer = () => {
+            const now = new Date();
+            const targetDate = new Date(event.date);
+            let diffTime = targetDate - now;
+            if (diffTime < 0) diffTime = 0;
+
+            const d = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const h = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diffTime % (1000 * 60)) / 1000);
+            
+            modalTimer.innerHTML = `
+                <div class="time-unit"><div class="flipper" data-value="${d}"><div class="flipper-card back">${d.toString().padStart(2,'0')}</div></div><span class="label">Days</span></div>
+                <div class="time-unit"><div class="flipper" data-value="${h}"><div class="flipper-card back">${h.toString().padStart(2,'0')}</div></div><span class="label">Hours</span></div>
+                <div class="time-unit"><div class="flipper" data-value="${m}"><div class="flipper-card back">${m.toString().padStart(2,'0')}</div></div><span class="label">Minutes</span></div>
+                <div class="time-unit"><div class="flipper" data-value="${s}"><div class="flipper-card back">${s.toString().padStart(2,'0')}</div></div><span class="label">Seconds</span></div>
+            `;
+        };
+
+        if (isPast) {
+            modalTimer.innerHTML = `<p class="event-ended">This event has ended.</p>`;
+            editBtn.classList.add('hidden');
+        } else {
+            updateModalTimer();
+            modalTimerInterval = setInterval(updateModalTimer, 1000);
+            editBtn.classList.remove('hidden');
+            editBtn.onclick = () => enterEditMode(event);
+        }
+        
+        modal.classList.remove('hidden');
+    };
+
+    const enterEditMode = (event) => {
+        closeModal();
+        editMode.active = true;
+        editMode.eventId = event.id;
+
+        eventNameInput.value = event.name;
+        eventDateInput.value = new Date(event.date).toISOString().split('T')[0];
+        eventDescriptionInput.value = event.description || '';
+
+        document.getElementById('form-buttons').innerHTML = `
+            <button type="submit">Save Changes</button>
+            <button type="button" class="cancel-edit-btn">Cancel</button>
+        `;
+        document.querySelector('.cancel-edit-btn').addEventListener('click', resetForm);
+        
+        eventForm.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        clearInterval(modalTimerInterval);
+    };
+
+    modalCloseBtn.addEventListener('click', closeModal);
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+
+    // --- INITIALIZATION ---
+    render();
+    setInterval(updateTimers, 1000);
+});
