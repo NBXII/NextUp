@@ -166,6 +166,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const targetDate = new Date(event.date);
+if (isNaN(targetDate.getTime())) return; // skip invalid dates
+
+
             const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
@@ -193,33 +197,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- EVENT HANDLERS ---
     eventForm.addEventListener('submit', (e) => {
-        e.preventDefault();
+    e.preventDefault();
 
-        if (editMode.active) {
-            // Update existing event
-            const event = events.find(ev => ev.id === editMode.eventId);
-            if (event) {
-                event.name = eventNameInput.value;
-                event.date = `${eventDateInput.value}T00:00:00`;
-                event.description = eventDescriptionInput.value;
-            }
-            resetForm();
-        } else {
-            // Add new event
-            const newEvent = {
-                id: Date.now(),
-                name: eventNameInput.value,
-                date: `${eventDateInput.value}T00:00:00`,
-                description: eventDescriptionInput.value || ''
-            };
-            events.push(newEvent);
-            eventForm.reset();
+    // Validate date
+    const dateValue = eventDateInput.value;
+    const targetDate = new Date(`${dateValue}T00:00:00`);
+    if (!dateValue || isNaN(targetDate.getTime())) {
+        alert("Please enter a valid date.");
+        return;
+    }
+
+    if (editMode.active) {
+        const event = events.find(ev => ev.id === editMode.eventId);
+        if (event) {
+            event.name = eventNameInput.value;
+            event.date = `${eventDateInput.value}T00:00:00`;
+            event.description = eventDescriptionInput.value;
         }
-        
-        events.sort((a, b) => new Date(a.date) - new Date(b.date));
-        saveEvents();
-        render();
-    });
+        resetForm();
+    } else {
+        const newEvent = {
+            id: Date.now(),
+            name: eventNameInput.value,
+            date: `${eventDateInput.value}T00:00:00`,
+            description: eventDescriptionInput.value || ''
+        };
+        events.push(newEvent);
+        eventForm.reset();
+    }
+
+    events.sort((a, b) => new Date(a.date) - new Date(b.date));
+    saveEvents();
+    render();
+});
 
     const resetForm = () => {
         editMode.active = false;
@@ -387,3 +397,4 @@ document.addEventListener('DOMContentLoaded', () => {
     render();
     setInterval(updateTimers, 1000);
 });
+
