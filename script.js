@@ -10,27 +10,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const listViewBtn = document.getElementById('list-view-btn');
     const currentEventsBtn = document.getElementById('current-events-btn');
     const pastEventsBtn = document.getElementById('past-events-btn');
-    const undoToast = document.getElementById('undo-toast');
-    const undoBtn = document.getElementById('undo-btn');
     const modal = document.getElementById('event-modal');
     const modalCloseBtn = document.getElementById('modal-close-btn');
 
     // Data
     let events = JSON.parse(localStorage.getItem('countdownEvents')) || [];
     let pastEvents = JSON.parse(localStorage.getItem('pastCountdownEvents')) || [];
-    let deleteTimeouts = {}; // Store timeouts for deletions
-    let editMode = {
-        active: false,
-        eventId: null
-    };
+    let deleteTimeouts = {};
+    let editMode = { active: false, eventId: null };
 
-    // --- SAVING ---
+    // --- Saving ---
     const saveEvents = () => {
         localStorage.setItem('countdownEvents', JSON.stringify(events));
         localStorage.setItem('pastCountdownEvents', JSON.stringify(pastEvents));
     };
 
-    // --- RENDERING ---
+    // --- Rendering ---
     const render = () => {
         renderCurrentEvents();
         renderPastEvents();
@@ -45,15 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.values(lists).forEach(list => list.innerHTML = '');
 
         const now = new Date();
-        const currentViewEvents = events.filter(event => {
+        const stillCurrentEvents = [];
+        events.forEach(event => {
             const targetDate = new Date(event.date);
             if (targetDate < now) {
                 pastEvents.unshift(event);
-                return false;
+            } else {
+                stillCurrentEvents.push(event);
             }
-            return true;
         });
-        events = currentViewEvents;
+        events = stillCurrentEvents;
 
         if (events.length === 0) {
             document.getElementById('soon-category').classList.add('hidden');
@@ -72,15 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = createCard(event);
 
             if (diffDays < 7) {
-                card.dataset.category = 'soon';
                 lists.days.appendChild(card);
                 eventsAdded.days++;
             } else if (diffDays <= 30) {
-                card.dataset.category = 'weeks';
                 lists.weeks.appendChild(card);
                 eventsAdded.weeks++;
             } else {
-                card.dataset.category = 'months';
                 lists.months.appendChild(card);
                 eventsAdded.months++;
             }
@@ -147,10 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 showEventModal(event.id, isPast);
             }
         });
+
         return card;
     };
 
-    // --- TIMERS ---
+    // --- Timers ---
     const updateTimers = () => {
         document.querySelectorAll('#countdown-categories .countdown-card').forEach(card => {
             const eventId = parseInt(card.dataset.id);
@@ -159,16 +153,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const now = new Date();
             const targetDate = new Date(event.date);
+            if (isNaN(targetDate.getTime())) return;
+
             let diffTime = targetDate - now;
             if (diffTime < 0) {
                 render();
                 saveEvents();
                 return;
             }
-            if (isNaN(targetDate.getTime())){
-                return; // Skip invalid dates
-            }
-
 
             const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -195,41 +187,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- EVENT HANDLERS ---
+    // --- Event Handlers ---
     eventForm.addEventListener('submit', (e) => {
-    e.preventDefault();
+        e.preventDefault();
 
-    // Validate date
-    const dateValue = eventDateInput.value;
-    const targetDate = new Date(`${dateValue}T00:00:00`);
-    if (!dateValue || isNaN(targetDate.getTime())) {
-        alert("Please enter a valid date.");
-        return;
-    }
-
-    if (editMode.active) {
-        const event = events.find(ev => ev.id === editMode.eventId);
-        if (event) {
-            event.name = eventNameInput.value;
-            event.date = `${eventDateInput.value}T00:00:00`;
-            event.description = eventDescriptionInput.value;
+        const dateValue = eventDateInput.value;
+        const targetDate = new Date(`${dateValue}T00:00:00`);
+        if (!dateValue || isNaN(targetDate.getTime())) {
+            alert("Please enter a valid date.");
+            return;
         }
-        resetForm();
-    } else {
-        const newEvent = {
-            id: Date.now(),
-            name: eventNameInput.value,
-            date: `${eventDateInput.value}T00:00:00`,
-            description: eventDescriptionInput.value || ''
-        };
-        events.push(newEvent);
-        eventForm.reset();
-    }
 
-    events.sort((a, b) => new Date(a.date) - new Date(b.date));
-    saveEvents();
-    render();
-});
+        if (editMode.active) {
+            const event = events.find(ev => ev.id === editMode.eventId);
+            if (event) {
+                event.name = eventNameInput.value;
+                event.date = `${eventDateInput.value}T00:00:00`;
+                event.description = eventDescriptionInput.value;
+            }
+            resetForm();
+        } else {
+            const newEvent = {
+                id: Date.now() + Math.floor(Math.random() * 1000),
+                name: eventNameInput.value,
+                date: `${eventDateInput.value}T00:00:00`,
+                description: eventDescriptionInput.value || ''
+            };
+            events.push(newEvent);
+            eventForm.reset();
+        }
+
+        events.sort((a, b) => new Date(a.date) - new Date(b.date));
+        saveEvents();
+        render();
+    });
 
     const resetForm = () => {
         editMode.active = false;
@@ -242,24 +233,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = document.querySelector(`.countdown-card[data-id='${eventId}']`);
         if (!card || deleteTimeouts[eventId]) return;
 
+        if (editMode.active && editMode.eventId === eventId) resetForm();
+
         card.classList.add('deleting');
-        
         const undoContainer = document.createElement('div');
         undoContainer.className = 'undo-container';
-        
         let countdown = 5;
-        undoContainer.innerHTML = `
-            <p>Deleting in <span class="countdown-timer">${countdown}</span>s...</p>
-            <button>Undo</button>
-        `;
+
+        undoContainer.innerHTML = `<p>Deleting in <span class="countdown-timer">${countdown}</span>s...</p><button>Undo</button>`;
         card.appendChild(undoContainer);
 
         const countdownInterval = setInterval(() => {
             countdown--;
             const timerSpan = undoContainer.querySelector('.countdown-timer');
-            if (timerSpan) {
-                timerSpan.textContent = countdown;
-            }
+            if (timerSpan) timerSpan.textContent = countdown;
         }, 1000);
 
         undoContainer.querySelector('button').addEventListener('click', (e) => {
@@ -273,21 +260,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         deleteTimeouts[eventId] = setTimeout(() => {
             clearInterval(countdownInterval);
-            if (isPast) {
-                pastEvents = pastEvents.filter(e => e.id !== eventId);
-            } else {
-                events = events.filter(e => e.id !== eventId);
-            }
+            if (isPast) pastEvents = pastEvents.filter(e => e.id !== eventId);
+            else events = events.filter(e => e.id !== eventId);
+
             saveEvents();
             render();
             delete deleteTimeouts[eventId];
         }, 5000);
     };
 
-    // This can be removed as the new undo is per-card
-    undoBtn.addEventListener('click', () => {});
-
-    // --- NAVIGATION ---
+    // --- Navigation ---
     currentEventsBtn.addEventListener('click', () => {
         categoriesContainer.classList.remove('hidden');
         pastEventsContainer.classList.add('hidden');
@@ -317,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gridViewBtn.classList.remove('active');
     });
 
-    // --- MODAL ---
+    // --- Modal ---
     let modalTimerInterval = null;
     const showEventModal = (eventId, isPast) => {
         const event = (isPast ? pastEvents : events).find(e => e.id === eventId);
@@ -325,7 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('modal-event-name').textContent = event.name;
         document.getElementById('modal-event-description').textContent = event.description || 'No description provided.';
-        
         const modalTimer = document.getElementById('modal-timer');
         const editBtn = document.getElementById('modal-edit-btn');
         clearInterval(modalTimerInterval);
@@ -333,14 +314,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateModalTimer = () => {
             const now = new Date();
             const targetDate = new Date(event.date);
-            let diffTime = targetDate - now;
-            if (diffTime < 0) diffTime = 0;
+            let diffTime = Math.max(targetDate - now, 0);
 
             const d = Math.floor(diffTime / (1000 * 60 * 60 * 24));
             const h = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const m = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
             const s = Math.floor((diffTime % (1000 * 60)) / 1000);
-            
+
             modalTimer.innerHTML = `
                 <div class="time-unit"><div class="flipper" data-value="${d}"><div class="flipper-card back">${d.toString().padStart(2,'0')}</div></div><span class="label">Days</span></div>
                 <div class="time-unit"><div class="flipper" data-value="${h}"><div class="flipper-card back">${h.toString().padStart(2,'0')}</div></div><span class="label">Hours</span></div>
@@ -358,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
             editBtn.classList.remove('hidden');
             editBtn.onclick = () => enterEditMode(event);
         }
-        
+
         modal.classList.remove('hidden');
     };
 
@@ -376,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <button type="button" class="cancel-edit-btn">Cancel</button>
         `;
         document.querySelector('.cancel-edit-btn').addEventListener('click', resetForm);
-        
         eventForm.scrollIntoView({ behavior: 'smooth' });
     };
 
@@ -386,14 +365,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     modalCloseBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-
-    // --- INITIALIZATION ---
+    // --- Initialization ---
     render();
     setInterval(updateTimers, 1000);
 });
