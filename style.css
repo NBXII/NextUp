@@ -5,7 +5,7 @@
     --card-bg-color: rgba(22, 33, 62, 0.75);
     --border-color: rgba(255, 255, 255, 0.1);
     --primary-color: #537895;
-    --secondary-color: #09E6B2; /* A vibrant mint green */
+    --secondary-color: #e60909de; /* A vibrant mint green */
     --font-color: #e0e0e0;
     --font-family: 'Poppins', sans-serif;
     --danger-color: #e94560;
@@ -673,5 +673,6 @@ main.hidden {
         line-height: 1.8rem;
     }
 }
+
 
 
