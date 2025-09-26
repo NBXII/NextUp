@@ -1,7 +1,7 @@
 :root {
-    --bg-color-start: #0f0c29;
-    --bg-color-mid: #302b63;
-    --bg-color-end: #24243e;
+    --bg-color-start: #291d0c;
+    --bg-color-mid: #2c3d75;
+    --bg-color-end: #243e28;
     --card-bg-color: rgba(22, 33, 62, 0.75);
     --border-color: rgba(255, 255, 255, 0.1);
     --primary-color: #537895;
@@ -11,7 +11,7 @@
     --danger-color: #e94560;
     --soon-color: #ffc300;
     --weeks-color: #58a6ff;
-    --months-color: #a371f7;
+    --months-color: #52ff4c;
 }
 
 * {
@@ -673,4 +673,5 @@ main.hidden {
         line-height: 1.8rem;
     }
 }
+
 
