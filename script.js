@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const dateValue = eventDateInput.value;
         const targetDate = new Date(`${dateValue}T00:00:00`);
         if (!dateValue || isNaN(targetDate.getTime())) {
-            alert("Please enter a valid date.");
+            // alert("Please enter a valid date.");
             return;
         }
 
@@ -371,3 +371,4 @@ document.addEventListener('DOMContentLoaded', () => {
     render();
     setInterval(updateTimers, 1000);
 });
+
