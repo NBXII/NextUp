@@ -1,17 +1,17 @@
 :root {
-    --bg-color-start: #291d0c;
-    --bg-color-mid: #2c3d75;
-    --bg-color-end: #243e28;
-    --card-bg-color: rgba(22, 33, 62, 0.75);
-    --border-color: rgba(255, 255, 255, 0.1);
-    --primary-color: #537895;
-    --secondary-color: #e6a009; /* A vibrant light orange */
-    --font-color: #e0e0e0;
-    --font-family: 'Poppins', sans-serif;
-    --danger-color: #e94560;
-    --soon-color: #ffc300;
+    --bg-color-start: #131316;
+    --bg-color-mid: #1c1c21;
+    --bg-color-end: #131316;
+    --card-bg-color: #26262c;
+    --border-color: #26262c;
+    --primary-color: #1c1c21;
+    --secondary-color: #ffffff; /* A vibrant mint green */
+    --font-color: #d6d4d4;
+    --font-family:"Agency FB", Arial, sans-serif;
+    --danger-color: #fe032d;
+    --soon-color: #f8f8f8;
     --weeks-color: #58a6ff;
-    --months-color: #52ff4c;
+    --months-color: #0d9254;
 }
 
 * {
@@ -111,7 +111,7 @@ header p {
 #main-nav button.active {
     opacity: 1;
     color: var(--secondary-color);
-    background: rgba(9, 230, 178, 0.15);
+    background: rgba(10 72 217 / 15%);
 }
 
 #view-switcher {
@@ -146,7 +146,7 @@ header p {
 #view-switcher button.active {
     opacity: 1;
     color: var(--secondary-color);
-    background: rgba(9, 230, 178, 0.15);
+    background: rgba(10 72 217 / 15%);
 }
 
 #event-form {
@@ -673,7 +673,4 @@ main.hidden {
         line-height: 1.8rem;
     }
 }
-
-
-
 
