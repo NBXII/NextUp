@@ -180,25 +180,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const minutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diffTime % (1000 * 60)) / 1000);
 
-            // compute progress percent between start -> target
+            // compute elapsed and remaining percent between start -> target
             let startTime = event.start ? new Date(event.start) : null;
             if (!startTime || isNaN(startTime.getTime())) startTime = new Date();
             const totalMs = targetDate - startTime;
-            let percent = 0;
-            if (totalMs > 0) percent = Math.round(((now - startTime) / totalMs) * 100);
-            percent = Math.max(0, Math.min(100, percent));
+            // use high-precision floats so short events show non-zero widths
+            let elapsedPercentFloat = 0;
+            if (totalMs > 0) elapsedPercentFloat = ((now - startTime) / totalMs) * 100;
+            elapsedPercentFloat = Math.max(0, Math.min(100, elapsedPercentFloat));
+            const remainingPercentFloat = 100 - elapsedPercentFloat;
+            // friendly rounded values for display
+            const displayRemainingRounded = remainingPercentFloat > 0 && remainingPercentFloat < 1 ? '<1' : Math.round(remainingPercentFloat);
 
             const progressFill = card.querySelector('.progress-fill');
             const progressWave = card.querySelector('.progress-wave');
             const percentLabel = card.querySelector('.progress-percent');
-            if (progressFill) progressFill.style.width = percent + '%';
-            if (progressWave) progressWave.style.width = percent + '%';
-            if (percentLabel) percentLabel.textContent = percent + '%';
+            // show remaining as the visible battery-like fill (use precise width for CSS)
+            const preciseWidth = Math.max(0, Math.min(100, remainingPercentFloat));
+            if (progressFill) progressFill.style.width = preciseWidth.toFixed(3) + '%';
+            if (progressWave) progressWave.style.width = preciseWidth.toFixed(3) + '%';
+            if (percentLabel) percentLabel.textContent = displayRemainingRounded + '%';
 
-            // remaining percent and drop-rate (approx per day or per hour)
-            const remaining = Math.max(0, 100 - percent);
-            const remainingLabel = card.querySelector('.progress-remaining');
-            if (remainingLabel) remainingLabel.textContent = `${remaining}% left`;
+            // show elapsed in the info area and compute drop-rate for remaining
+            const elapsedLabel = card.querySelector('.progress-remaining');
+            if (elapsedLabel) elapsedLabel.textContent = `${Math.round(elapsedPercentFloat)}% elapsed`;
             const rateLabel = card.querySelector('.progress-rate');
             if (rateLabel) {
                 const remainingMs = targetDate - now;
@@ -206,11 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 else {
                     const daysLeft = remainingMs / (1000*60*60*24);
                     if (daysLeft >= 1) {
-                        const perDay = (remaining / daysLeft) || 0;
+                        const perDay = (remainingPercentFloat / daysLeft) || 0;
                         rateLabel.textContent = `≈ ${perDay.toFixed(2)}%/day`;
                     } else {
                         const hoursLeft = remainingMs / (1000*60*60) || 1;
-                        const perHour = (remaining / hoursLeft) || 0;
+                        const perHour = (remainingPercentFloat / hoursLeft) || 0;
                         rateLabel.textContent = `≈ ${perHour.toFixed(2)}%/hr`;
                     }
                 }
