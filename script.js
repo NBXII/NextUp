@@ -108,6 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
             year: 'numeric', month: 'long', day: 'numeric'
         });
 
+        // ensure start timestamp exists for progress calculations
+        if (!event.start) {
+            event.start = event.createdAt || new Date().toISOString();
+            // not strictly necessary to save every render, but persist for newly created events
+            try { saveEvents(); } catch (e) { /* ignore */ }
+        }
+
         let timerHtml = '';
         if (!isPast) {
             timerHtml = `
@@ -116,6 +123,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="time-unit"><div class="flipper" data-hours></div><span class="label">Hours</span></div>
                 <div class="time-unit"><div class="flipper" data-minutes></div><span class="label">Minutes</span></div>
                 <div class="time-unit"><div class="flipper" data-seconds></div><span class="label">Seconds</span></div>
+            </div>
+            <div class="progress-container" aria-hidden="false">
+              <div class="progress-fill" style="width:0%"></div>
+              <div class="progress-wave" style="width:0%"></div>
+              <div class="progress-percent">0%</div>
+              <div class="progress-info"><span class="progress-remaining">100% left</span><span class="progress-rate">−0%/day</span></div>
             </div>`;
         } else {
             timerHtml = `<p class="event-ended">Ended on ${formattedDate}</p>`;
@@ -167,6 +180,42 @@ document.addEventListener('DOMContentLoaded', () => {
             const minutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diffTime % (1000 * 60)) / 1000);
 
+            // compute progress percent between start -> target
+            let startTime = event.start ? new Date(event.start) : null;
+            if (!startTime || isNaN(startTime.getTime())) startTime = new Date();
+            const totalMs = targetDate - startTime;
+            let percent = 0;
+            if (totalMs > 0) percent = Math.round(((now - startTime) / totalMs) * 100);
+            percent = Math.max(0, Math.min(100, percent));
+
+            const progressFill = card.querySelector('.progress-fill');
+            const progressWave = card.querySelector('.progress-wave');
+            const percentLabel = card.querySelector('.progress-percent');
+            if (progressFill) progressFill.style.width = percent + '%';
+            if (progressWave) progressWave.style.width = percent + '%';
+            if (percentLabel) percentLabel.textContent = percent + '%';
+
+            // remaining percent and drop-rate (approx per day or per hour)
+            const remaining = Math.max(0, 100 - percent);
+            const remainingLabel = card.querySelector('.progress-remaining');
+            if (remainingLabel) remainingLabel.textContent = `${remaining}% left`;
+            const rateLabel = card.querySelector('.progress-rate');
+            if (rateLabel) {
+                const remainingMs = targetDate - now;
+                if (remainingMs <= 0) rateLabel.textContent = '—';
+                else {
+                    const daysLeft = remainingMs / (1000*60*60*24);
+                    if (daysLeft >= 1) {
+                        const perDay = (remaining / daysLeft) || 0;
+                        rateLabel.textContent = `≈ ${perDay.toFixed(2)}%/day`;
+                    } else {
+                        const hoursLeft = remainingMs / (1000*60*60) || 1;
+                        const perHour = (remaining / hoursLeft) || 0;
+                        rateLabel.textContent = `≈ ${perHour.toFixed(2)}%/hr`;
+                    }
+                }
+            }
+
             updateFlipper(card.querySelector('[data-days]'), days);
             updateFlipper(card.querySelector('[data-hours]'), hours);
             updateFlipper(card.querySelector('[data-minutes]'), minutes);
@@ -211,11 +260,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: Date.now() + Math.floor(Math.random() * 1000),
                 name: eventNameInput.value,
                 date: `${eventDateInput.value}T00:00:00`,
-                description: eventDescriptionInput.value || ''
+                description: eventDescriptionInput.value || '',
+                createdAt: new Date().toISOString(),
+                start: new Date().toISOString()
             };
             events.push(newEvent);
             eventForm.reset();
         }
+
 
         events.sort((a, b) => new Date(a.date) - new Date(b.date));
         saveEvents();
