@@ -117,6 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let timerHtml = '';
         if (!isPast) {
+            const r = 45;
+            const c = 2 * Math.PI * r;
             timerHtml = `
             <div class="timer">
                 <div class="time-unit"><div class="flipper" data-days></div><span class="label">Days</span></div>
@@ -124,11 +126,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="time-unit"><div class="flipper" data-minutes></div><span class="label">Minutes</span></div>
                 <div class="time-unit"><div class="flipper" data-seconds></div><span class="label">Seconds</span></div>
             </div>
-            <div class="progress-container" aria-hidden="false">
-              <div class="progress-fill" style="width:0%"></div>
-              <div class="progress-wave" style="width:0%"></div>
-              <div class="progress-percent">0%</div>
-              <div class="progress-info"><span class="progress-remaining">100% left</span><span class="progress-rate">−0%/day</span></div>
+            <div class="ring-container">
+                <svg class="countdown-ring" viewBox="0 0 100 100">
+                    <defs>
+                        <linearGradient id="grad-${event.id}" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="var(--weeks-color)" />
+                            <stop offset="100%" stop-color="var(--months-color)" />
+                        </linearGradient>
+                    </defs>
+                    <circle class="ring-track" cx="50" cy="50" r="${r}"></circle>
+                    <circle class="ring-progress" cx="50" cy="50" r="${r}"
+                            stroke="url(#grad-${event.id})"
+                            stroke-dasharray="${c} ${c}"
+                            stroke-dashoffset="${c}"></circle>
+                </svg>
+                <div class="ring-content">
+                    <span class="ring-percent">0%</span>
+                    <span class="ring-label">Left</span>
+                </div>
             </div>`;
         } else {
             timerHtml = `<p class="event-ended">Ended on ${formattedDate}</p>`;
@@ -192,34 +207,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // friendly rounded values for display
             const displayRemainingRounded = remainingPercentFloat > 0 && remainingPercentFloat < 1 ? '<1' : Math.round(remainingPercentFloat);
 
-            const progressFill = card.querySelector('.progress-fill');
-            const progressWave = card.querySelector('.progress-wave');
-            const percentLabel = card.querySelector('.progress-percent');
-            // show remaining as the visible battery-like fill (use precise width for CSS)
-            const preciseWidth = Math.max(0, Math.min(100, remainingPercentFloat));
-            if (progressFill) progressFill.style.width = preciseWidth.toFixed(3) + '%';
-            if (progressWave) progressWave.style.width = preciseWidth.toFixed(3) + '%';
-            if (percentLabel) percentLabel.textContent = displayRemainingRounded + '%';
+            const r = 45;
+            const c = 2 * Math.PI * r;
+            const precisePercent = Math.max(0, Math.min(100, remainingPercentFloat));
+            const offset = c - (precisePercent / 100) * c;
 
-            // show elapsed in the info area and compute drop-rate for remaining
-            const elapsedLabel = card.querySelector('.progress-remaining');
-            if (elapsedLabel) elapsedLabel.textContent = `${Math.round(elapsedPercentFloat)}% elapsed`;
-            const rateLabel = card.querySelector('.progress-rate');
-            if (rateLabel) {
-                const remainingMs = targetDate - now;
-                if (remainingMs <= 0) rateLabel.textContent = '—';
-                else {
-                    const daysLeft = remainingMs / (1000*60*60*24);
-                    if (daysLeft >= 1) {
-                        const perDay = (remainingPercentFloat / daysLeft) || 0;
-                        rateLabel.textContent = `≈ ${perDay.toFixed(2)}%/day`;
-                    } else {
-                        const hoursLeft = remainingMs / (1000*60*60) || 1;
-                        const perHour = (remainingPercentFloat / hoursLeft) || 0;
-                        rateLabel.textContent = `≈ ${perHour.toFixed(2)}%/hr`;
-                    }
-                }
-            }
+            const ringProgress = card.querySelector('.ring-progress');
+            const ringPercent = card.querySelector('.ring-percent');
+
+            if (ringProgress) ringProgress.style.strokeDashoffset = offset;
+            if (ringPercent) ringPercent.textContent = displayRemainingRounded + '%';
 
             updateFlipper(card.querySelector('[data-days]'), days);
             updateFlipper(card.querySelector('[data-hours]'), hours);
@@ -428,4 +425,3 @@ document.addEventListener('DOMContentLoaded', () => {
     render();
     setInterval(updateTimers, 1000);
 });
-
