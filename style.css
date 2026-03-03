@@ -2,8 +2,8 @@
     --bg-color-start: #131316;
     --bg-color-mid: #1c1c21;
     --bg-color-end: #131316;
-    --card-bg-color: #26262c;
-    --border-color: #26262c;
+    --card-bg-color: rgba(38, 38, 44, 0.6);
+    --border-color: rgba(255, 255, 255, 0.1);
     --primary-color: #1c1c21;
     --secondary-color: #ffffff; /* A vibrant mint green */
     --font-color: #d6d4d4;
@@ -20,6 +20,57 @@
     box-sizing: border-box;
 }
 
+body[data-theme="light"] {
+    --bg-color-start: #f4f7f6;
+    --bg-color-mid: #e9edf2;
+    --bg-color-end: #f4f7f6;
+    --card-bg-color: rgba(255, 255, 255, 0.6);
+    --border-color: rgba(0, 0, 0, 0.1);
+    --primary-color: #e9edf2;
+    --secondary-color: #0052d4;
+    --font-color: #333333;
+    --danger-color: #d93025;
+    --soon-color: #333;
+    --weeks-color: #0052d4;
+    --months-color: #0d9254;
+}
+
+body[data-theme="light"] header h1 {
+    color: #111;
+    text-shadow: none;
+}
+
+body[data-theme="light"] #main-nav button.active,
+body[data-theme="light"] #view-switcher button.active {
+    background: rgba(0, 82, 212, 0.1);
+}
+
+body[data-theme="light"] #event-form input, 
+body[data-theme="light"] #event-form textarea {
+    background-color: rgba(255, 255, 255, 0.7);
+}
+
+body[data-theme="light"] #event-form input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: none;
+}
+
+body[data-theme="light"] #event-form button {
+    color: #fff;
+}
+
+body[data-theme="light"] .category h2 {
+    color: #333;
+}
+
+body[data-theme="light"] .countdown-card h3 {
+    color: #111;
+}
+
+body[data-theme="light"] .countdown-card .target-date,
+body[data-theme="light"] .label {
+    color: #666;
+}
+
 
 
 
@@ -34,6 +85,17 @@ body {
     padding: 2rem;
     min-height: 100vh;
     overflow-x: hidden;
+}
+
+/* Floating particles background */
+#particle-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
 }
 
 @keyframes gradientBG {
@@ -80,6 +142,21 @@ header p {
     align-items: center;
     max-width: 400px;
     margin: 0 auto;
+}
+
+#theme-toggle {
+    background-color: var(--card-bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--font-color);
+    font-size: 1.2rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
 }
 
 #main-nav {
@@ -319,9 +396,23 @@ header p {
     font-size: 0.5rem;
 }
 
+.time-insights {
+    font-size: 0.85rem;
+    color: #b0b0b0;
+    margin-top: 1rem;
+    text-align: center;
+    min-height: 1.2em; /* prevent layout shift */
+    pointer-events: none;
+}
+
+body[data-theme="light"] .time-insights {
+    color: #666;
+}
+
 .countdown-card {
     background-color: var(--card-bg-color);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     padding: 1.5rem;
     border-radius: 15px;
     border: 1px solid var(--border-color);
@@ -330,14 +421,21 @@ header p {
     flex-direction: column;
     animation: fadeIn 0.5s ease-in-out;
     position: relative;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.1s linear, box-shadow 0.3s ease;
     transform-style: preserve-3d;
     cursor: pointer;
 }
 
+body[data-theme="light"] .countdown-card {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
 .countdown-card:hover {
-    transform: translateY(-10px) perspective(1000px) rotateX(2deg) rotateY(4deg);
     box-shadow: 0 0 35px rgba(9, 230, 178, 0.5);
+}
+
+body[data-theme="light"] .countdown-card:hover {
+    box-shadow: 0 0 25px rgba(0, 82, 212, 0.3);
 }
 
 .countdown-card.deleting {
@@ -433,6 +531,10 @@ header p {
     perspective: 300px;
 }
 
+body[data-theme="light"] .flipper-card {
+    background: rgba(0, 0, 0, 0.05);
+}
+
 .flipper-card {
     position: absolute;
     top: 0;
@@ -470,6 +572,10 @@ header p {
     transition: color 0.3s ease, transform 0.3s ease;
     line-height: 1;
     z-index: 2;
+}
+
+body[data-theme="light"] .delete-btn {
+    color: #888;
 }
 
 .delete-btn:hover {
@@ -535,6 +641,10 @@ header p {
     transform: none;
 }
 
+#countdown-categories.list-view .time-insights {
+    display: none; /* Hide insights in compact list view */
+}
+
 main.hidden {
     display: none;
 }
@@ -559,6 +669,12 @@ main.hidden {
 #undo-toast.hidden {
     transform: translate(-50%, 150%);
     opacity: 0;
+}
+
+body[data-theme="light"] #undo-toast {
+    background-color: #f0f0f0;
+    color: #333;
+    border: 1px solid #ddd;
 }
 #undo-btn {
     background: none;

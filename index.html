@@ -14,19 +14,26 @@
   <body>
     <div class="container">
       <header>
+        
         <h1>NextUp</h1>
         <p>Capture your moments. Create your countdowns.</p>
         <div class="header-controls">
           <nav id="main-nav">
             <button id="current-events-btn" class="active">Current</button>
             <button id="past-events-btn">Past</button>
+           
           </nav>
+
           <div id="view-switcher">
             <button id="grid-view-btn" class="active" title="Grid View">
               ▦
             </button>
             <button id="list-view-btn" title="List View">≡</button>
           </div>
+           <div class="header-controls">
+  <button id="theme-toggle" title="Toggle Theme">☀️</button>
+  <!-- ... your existing nav and view-switcher ... -->
+</div>
         </div>
       </header>
 
@@ -39,6 +46,12 @@
             required />
           <input type="date" id="event-date" required />
         </div>
+        <div class="form-row">
+    <input type="text" id="event-name" placeholder="Event Name" required>
+    <input type="date" id="event-date" required>
+    <input type="time" id="event-time">
+</div>
+
         <textarea
           id="event-description"
           placeholder="Add a description... (optional)"></textarea>
