@@ -29,6 +29,21 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCanvas();
     createParticles();
     const eventForm = document.getElementById('event-form');
+
+    // Confetti Canvas Setup
+    const confettiCanvas = document.createElement('canvas');
+    confettiCanvas.id = 'confetti-canvas';
+    document.body.appendChild(confettiCanvas);
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let confettiParticles = [];
+    let isConfettiLoopRunning = false;
+
+    const setupConfettiCanvas = () => {
+        confettiCanvas.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1000;';
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+    };
+    setupConfettiCanvas();
     const eventNameInput = document.getElementById('event-name');
     const eventDateInput = document.getElementById('event-date');
     const eventTimeInput = document.getElementById('event-time');
@@ -57,6 +72,71 @@ document.addEventListener('DOMContentLoaded', () => {
             if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
             if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
         });
+    };
+
+    // --- Confetti ---
+    const confettiColors = ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'];
+
+    const triggerConfetti = (card) => {
+        const rect = card.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 3;
+
+        const particleCount = 150;
+        for (let i = 0; i < particleCount; i++) {
+            confettiParticles.push(createConfettiParticle(x, y));
+        }
+        
+        if (!isConfettiLoopRunning) {
+            animateConfetti();
+        }
+    };
+
+    const createConfettiParticle = (x, y) => {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 3;
+        return {
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 7, // Initial upward velocity
+            size: Math.random() * 8 + 4,
+            color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+            rotation: Math.random() * 360,
+            rotationSpeed: Math.random() * 20 - 10,
+            opacity: 1,
+            life: 150 // Frames
+        };
+    };
+
+    const animateConfetti = () => {
+        isConfettiLoopRunning = true;
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+
+        confettiParticles = confettiParticles.filter(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.15; // Gravity
+            p.vx *= 0.99; // Air resistance
+            p.rotation += p.rotationSpeed;
+            p.life--;
+            p.opacity = Math.max(0, p.life / 150);
+            if (p.life <= 0) return false;
+            confettiCtx.save();
+            confettiCtx.translate(p.x, p.y);
+            confettiCtx.rotate(p.rotation * Math.PI / 180);
+            confettiCtx.fillStyle = p.color;
+            confettiCtx.globalAlpha = p.opacity;
+            confettiCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            confettiCtx.restore();
+            return true;
+        });
+
+        if (confettiParticles.length > 0) {
+            requestAnimationFrame(animateConfetti);
+        } else {
+            isConfettiLoopRunning = false;
+        }
     };
 
     // --- Theme Handling ---
@@ -257,6 +337,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Timers ---
     const updateTimers = () => {
+        let needsReRender = false;
+
         document.querySelectorAll('#countdown-categories .countdown-card').forEach(card => {
             const eventId = parseInt(card.dataset.id);
             const event = events.find(e => e.id === eventId);
@@ -268,8 +350,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let diffTime = targetDate - now;
             if (diffTime < 0) {
-                render();
-                saveEvents();
+                if (!event.completed) {
+                    event.completed = true; // Use a non-persistent flag
+                    triggerConfetti(card);
+                    needsReRender = true;
+                }
+                // Hide the timer elements to prevent showing negative values
+                card.querySelector('.timer')?.remove();
+                card.querySelector('.ring-container')?.remove();
+                card.querySelector('.time-insights')?.remove();
                 return;
             }
 
@@ -329,6 +418,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+
+        if (needsReRender) {
+            setTimeout(() => {
+                render();
+                saveEvents();
+            }, 4000); // Delay re-rendering to show confetti
+        }
     };
 
     const updateFlipper = (flipper, value) => {
@@ -502,6 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => {
         setupCanvas();
         createParticles();
+        setupConfettiCanvas();
     });
 
     gridViewBtn.addEventListener('click', () => {
