@@ -151,6 +151,50 @@ document.addEventListener('DOMContentLoaded', () => {
         applyTheme(newTheme);
     });
 
+    // --- Service Worker and Notifications ---
+    const postMessageToSW = (message) => {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage(message);
+        } else if ('serviceWorker' in navigator) {
+            // If controller is not available yet (e.g., first load), wait for it.
+            navigator.serviceWorker.ready.then(registration => {
+                if (registration.active) {
+                    registration.active.postMessage(message);
+                }
+            });
+        }
+    };
+
+    const syncEventsWithSW = () => {
+        // Schedule notifications for all current events.
+        // The service worker uses a tag to replace existing scheduled notifications,
+        // so this is safe to call multiple times.
+        events.forEach(event => {
+            postMessageToSW({ type: 'SCHEDULE', event: event });
+        });
+    };
+
+    const registerServiceWorker = async () => {
+        // Check for Service Worker, Notification, and Notification Triggers API support
+        if ('serviceWorker' in navigator && 'Notification' in window && 'showTrigger' in Notification.prototype) {
+            try {
+                const registration = await navigator.serviceWorker.register('./service-worker.js');
+                console.log('Service Worker registered with scope:', registration.scope);
+                
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('Notification permission granted. Syncing events for notifications.');
+                    syncEventsWithSW();
+                } else {
+                    console.log('Notification permission denied.');
+                }
+            } catch (error) {
+                console.error('Service Worker registration failed:', error);
+            }
+        } else {
+            console.log('Push notifications or Notification Triggers not supported in this browser.');
+        }
+    };
 
     // Data
     let events = JSON.parse(localStorage.getItem('countdownEvents')) || [];
@@ -509,6 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 event.name = eventNameInput.value;
                 event.date = `${eventDateInput.value}T${timeValue}`;
                 event.description = eventDescriptionInput.value;
+                postMessageToSW({ type: 'SCHEDULE', event: event }); // Reschedule notification
             }
             resetForm();
         } else {
@@ -521,6 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 start: new Date().toISOString()
             };
             events.push(newEvent);
+            postMessageToSW({ type: 'SCHEDULE', event: newEvent });
             eventForm.reset();
         }
 
@@ -568,6 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         deleteTimeouts[eventId] = setTimeout(() => {
             clearInterval(countdownInterval);
+            postMessageToSW({ type: 'CANCEL', eventId: eventId }); // Cancel scheduled notification
             if (isPast) pastEvents = pastEvents.filter(e => e.id !== eventId);
             else events = events.filter(e => e.id !== eventId);
 
@@ -686,6 +733,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initialization ---
     const savedTheme = localStorage.getItem('theme') || 'dark';
     applyTheme(savedTheme);
+
+    registerServiceWorker();
 
     render();
     

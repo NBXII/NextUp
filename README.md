@@ -14,6 +14,8 @@ A sleek and modern web application to create, track, and manage countdowns for y
 - Dual Views: Switch between a responsive "Grid View" and a compact List View to see your events the way you prefer.
 - Event Details Modal: Click on any event to open a modal with a larger timer and the full event description.
 - Undo Deletion: Accidentally deleted an event? No problem. You have 5 seconds to undo the action.
+- **Completion Notifications**: Receive a push notification when an event's countdown finishes, even if the app is closed. (Note: This feature relies on modern browser APIs and may not be available on all platforms).
+- **Installable PWA**: Install NextUp as a Progressive Web App on your desktop or mobile device for a native-app-like experience and offline access.
 - Persistent Storage: Your events are saved in the browser's `localStorage`, so they'll be there when you come back.
 - Responsive Design: A beautiful and functional interface that works seamlessly on desktop, tablet, and mobile devices.
 
@@ -30,14 +32,17 @@ A sleek and modern web application to create, track, and manage countdowns for y
   - Date and time calculations for the countdown logic.
   - Event handling for user interactions.
   - `localStorage` API for client-side storage.
+  - Service Worker API for PWA features (offline caching) and notifications.
 
 ## 🚀 How to Use
 
-This is a static web project and requires no build process or server.
+This is a static web project. For the PWA and Service Worker features to work correctly, you must serve the files from a web server (even a simple local one). Opening `index.html` directly from the file system (`file://...`) will prevent the service worker from registering.
 
 1.  Clone the repository or download the files (`index.html`, `style.css`, `script.js`).
-2.  Open the `index.html` file in your favorite web browser.
-3.  Start creating your countdowns!
+2.  Serve the project directory using a local web server. A simple way is to use Python: `python -m http.server` or the "Live Server" extension in VS Code.
+3.  Open the local server address (e.g., `http://localhost:8000`) in your browser.
+4.  You can now "install" the app via the browser's address bar or menu.
+5.  Start creating your countdowns!
 
 ## ⚙️ How It Works
 
