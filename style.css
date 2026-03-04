@@ -231,6 +231,15 @@ header p {
     flex-direction: column;
     gap: 1rem;
     margin-bottom: 3rem;
+    padding: 1rem;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    transition: all 0.5s ease-in-out;
+}
+
+#event-form.highlight {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 25px rgba(9, 230, 178, 0.5);
 }
 
 .form-row {
@@ -741,6 +750,12 @@ body[data-theme="light"] #undo-toast {
     line-height: 1.6;
 }
 
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
 #modal-edit-btn {
     background-color: var(--secondary-color);
     color: #111;
@@ -750,13 +765,29 @@ body[data-theme="light"] #undo-toast {
     padding: 0.6rem 1.2rem;
     border-radius: 8px;
     font-size: 1rem;
-    margin-top: 1.5rem;
     transition: all 0.3s ease;
 }
 #modal-edit-btn:hover {
     background-color: transparent;
     color: var(--secondary-color);
     box-shadow: 0 0 15px var(--secondary-color);
+}
+
+#modal-share-btn {
+    background-color: transparent;
+    color: var(--font-color);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+#modal-share-btn:hover, #modal-share-btn:disabled {
+    color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    box-shadow: none;
 }
 
 

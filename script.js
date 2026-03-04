@@ -687,6 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('modal-event-description').textContent = event.description || 'No description provided.';
         const modalTimer = document.getElementById('modal-timer');
         const editBtn = document.getElementById('modal-edit-btn');
+        const shareBtn = document.getElementById('modal-share-btn');
         clearInterval(modalTimerInterval);
 
         const updateModalTimer = () => {
@@ -710,11 +711,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isPast) {
             modalTimer.innerHTML = `<p class="event-ended">This event has ended.</p>`;
             editBtn.classList.add('hidden');
+            shareBtn.classList.add('hidden');
         } else {
             updateModalTimer();
             modalTimerInterval = setInterval(updateModalTimer, 1000);
             editBtn.classList.remove('hidden');
+            shareBtn.classList.remove('hidden');
             editBtn.onclick = () => enterEditMode(event);
+            shareBtn.onclick = () => shareEvent(event);
         }
 
         modal.classList.remove('hidden');
@@ -747,11 +751,70 @@ document.addEventListener('DOMContentLoaded', () => {
     modalCloseBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
+    // --- Sharing ---
+    const shareEvent = (event) => {
+        const shareBtn = document.getElementById('modal-share-btn');
+        if (!event || !shareBtn) return;
+
+        const eventData = {
+            name: event.name,
+            date: event.date,
+            description: event.description
+        };
+        // Use encode/decodeURIComponent to handle UTF-8 characters correctly with btoa/atob
+        const jsonString = JSON.stringify(eventData);
+        const base64String = btoa(unescape(encodeURIComponent(jsonString)));
+        const shareUrl = `${window.location.origin}${window.location.pathname}#event=${base64String}`;
+
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            const originalText = shareBtn.textContent;
+            shareBtn.textContent = 'Copied!';
+            shareBtn.disabled = true;
+            setTimeout(() => {
+                shareBtn.textContent = originalText;
+                shareBtn.disabled = false;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy share link: ', err);
+            window.prompt("Could not copy automatically. Please copy this link:", shareUrl);
+        });
+    };
+
+    const handleSharedEvent = () => {
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#event=')) {
+            try {
+                const base64String = hash.substring('#event='.length);
+                const jsonString = decodeURIComponent(escape(atob(base64String)));
+                const eventData = JSON.parse(jsonString);
+
+                if (eventData.name && eventData.date) {
+                    eventNameInput.value = eventData.name;
+                    eventDescriptionInput.value = eventData.description || '';
+                    const eventDate = new Date(eventData.date);
+                    if (!isNaN(eventDate)) {
+                        eventDateInput.value = eventDate.toISOString().split('T')[0];
+                        eventTimeInput.value = eventDate.toTimeString().slice(0, 5);
+                    }
+                    eventForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    eventForm.classList.add('highlight');
+                    setTimeout(() => eventForm.classList.remove('highlight'), 3000);
+                }
+            } catch (error) {
+                console.error('Failed to parse shared event data:', error);
+            } finally {
+                history.pushState("", document.title, window.location.pathname + window.location.search);
+            }
+        }
+    };
+
     // --- Initialization ---
     const savedTheme = localStorage.getItem('theme') || 'dark';
     applyTheme(savedTheme);
 
     registerServiceWorker();
+
+    handleSharedEvent();
 
     render();
     
