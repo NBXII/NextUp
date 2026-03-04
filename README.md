@@ -14,7 +14,7 @@ A sleek and modern web application to create, track, and manage countdowns for y
 - Dual Views: Switch between a responsive "Grid View" and a compact List View to see your events the way you prefer.
 - Event Details Modal: Click on any event to open a modal with a larger timer and the full event description.
 - Undo Deletion: Accidentally deleted an event? No problem. You have 5 seconds to undo the action.
-- **Completion Notifications**: Receive a push notification when an event's countdown finishes, even if the app is closed. (Note: This feature relies on modern browser APIs and may not be available on all platforms).
+- **Completion Notifications**: Get notified when an event's countdown finishes. On supported browsers (like Chrome and Edge), notifications are scheduled to appear even if the app is closed. On other browsers, a notification will appear as a fallback if the app is open in a tab.
 - **Installable PWA**: Install NextUp as a Progressive Web App on your desktop or mobile device for a native-app-like experience and offline access.
 - Persistent Storage: Your events are saved in the browser's `localStorage`, so they'll be there when you come back.
 - Responsive Design: A beautiful and functional interface that works seamlessly on desktop, tablet, and mobile devices.

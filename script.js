@@ -176,15 +176,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const registerServiceWorker = async () => {
         // Check for Service Worker, Notification, and Notification Triggers API support
-        if ('serviceWorker' in navigator && 'Notification' in window && 'showTrigger' in Notification.prototype) {
+        if ('serviceWorker' in navigator && 'Notification' in window) {
             try {
                 const registration = await navigator.serviceWorker.register('./service-worker.js');
                 console.log('Service Worker registered with scope:', registration.scope);
                 
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
-                    console.log('Notification permission granted. Syncing events for notifications.');
-                    syncEventsWithSW();
+                    console.log('Notification permission granted.');
+                    // Only schedule offline notifications if the Trigger API is supported
+                    if ('showTrigger' in Notification.prototype) {
+                        console.log('Notification Triggers API supported. Syncing events for offline notifications.');
+                        syncEventsWithSW();
+                    } else {
+                        console.log('Notification Triggers API not supported. App will show notifications for completed events only when the tab is open.');
+                    }
                 } else {
                     console.log('Notification permission denied.');
                 }
@@ -192,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Service Worker registration failed:', error);
             }
         } else {
-            console.log('Push notifications or Notification Triggers not supported in this browser.');
+            console.log('Service Worker or Notifications not supported in this browser.');
         }
     };
 
@@ -397,6 +403,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!event.completed) {
                     event.completed = true; // Use a non-persistent flag
                     triggerConfetti(card);
+
+                    // Fallback notification for browsers that don't support Notification Triggers
+                    // This will only fire if the tab is open when the event completes.
+                    if (!('showTrigger' in Notification.prototype) && Notification.permission === 'granted') {
+                        const notification = new Notification(`Event Ended: ${event.name}`, {
+                            body: 'Your countdown has finished!',
+                            tag: `event-id-${event.id}` // Use tag to prevent duplicates
+                        });
+                        notification.onclick = () => window.focus();
+                    }
+
                     needsReRender = true;
                 }
                 // Hide the timer elements to prevent showing negative values
